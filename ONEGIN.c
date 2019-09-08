@@ -343,7 +343,8 @@ void path_check(char path[MAX_PATH_LENGTH])
         }
         if (ch != 0 && i == 29)
         {
-            assert(0);
+            printf("Path is too long");
+            exit(0);
         }
     }
 }
