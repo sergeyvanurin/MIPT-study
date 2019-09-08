@@ -173,8 +173,8 @@ void *read_file(char path[MAX_PATH_LENGTH])
     file = fopen(path, "r");
     if (file == NULL)
     {
-        printf("Error reading a file ");
-        assert(!(file == NULL));
+        printf("Error reading a file");
+        exit(0);
     }
     fseek(file, 0, SEEK_END);
     size = ftell(file);
@@ -343,7 +343,7 @@ void path_check(char path[MAX_PATH_LENGTH])
         }
         if (ch != 0 && i == 29)
         {
-            printf("Path is too long");
+            printf("Error: Path is too long!");
             exit(0);
         }
     }
