@@ -144,7 +144,6 @@ int main()
 
     printf("enter file path: ");
     gets(path);
-    path_check(path);
     text = read_file(path);
     textptr = (char*)text;
     strings = preprocessing(textptr);
@@ -214,7 +213,7 @@ void *indexing(char *text, int strings)
     first = 0;
     i = 0;
     j = 0;
-    index = calloc(strings, sizeof(char**));
+    index = calloc(strings, sizeof(char*));
     indexptr = (char**)index;
     while (i < strings)
     {
@@ -232,8 +231,10 @@ void *indexing(char *text, int strings)
 
 int comparator(char *string, char *base_string)
 {    
-    int i, j;
+    int i, j, Flag_string, Flag_base;
 
+    Flag_base = 0;
+    Flag_string = 0;
     i = 0;
     j = 0;
     while (string[i] != 0 || base_string[j] != 0)
@@ -246,19 +247,11 @@ int comparator(char *string, char *base_string)
         {
             j++;
         }
-        if (is_capital(string[i]) == 1)
-        {
-            string[i] = string[i] + ASCII_DIFERENCE;
-        }
-        if (is_capital(base_string[j]) == 1)
-        {
-            base_string[j] = base_string[j] + ASCII_DIFERENCE;
-        }  
         if (string[i] < base_string[j])
         {
             return 1;
         }
-        else if (string[i] > base_string[i])
+        else if (string[i] > base_string[j])
         {
             return 0;
         }
@@ -272,7 +265,6 @@ int comparator(char *string, char *base_string)
 void sort(char **index, int first, int last)
 {
     int i, j;
-    char *temp;
 
     if (first < last)
     {
