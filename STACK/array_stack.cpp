@@ -2,13 +2,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <iostream>
-#define get_var_name(var) #var
+
 #define DIAGNOSE
+
+#define get_var_name(var) #var
+
+
 #ifndef DIAGNOSE
 #define verbose 0
 #else
 #define verbose 1
 #endif
+
 
 #define STACK_INIT(stack) \
         {                 \
@@ -16,8 +21,7 @@
             stack_init(&stack); \
         }                       \
 
-        
- 
+
 int ERROR_CODE = 0;
 const char CANARY = 0xAB;
 const int POISON = -666;
@@ -26,6 +30,73 @@ const float RESIZE_CONSTANT = 2;
 const int DEFAULT_STACK_SIZE = 50;
 const int HYSTERESIS = 10;
 typedef int stack_elem_t;
+
+
+
+/*******************************************
+/Функция, которая инциализирует стэк
+/@param[in] указатель на структуру стэка
+********************************************/
+void stack_init(struct dynamic_stack *stack);
+
+/*******************************************
+/Функция, забирающая значение с верхушки
+/стэка
+/@param[in] указатель на структуру стэка
+/@param[out] элемент стэка
+********************************************/
+stack_elem_t pop(struct dynamic_stack *stack);
+
+/*******************************************
+/Функция, которая заносит эдемент в стек
+/@param[in] указатель на структуру стэка
+/@param[in] элемент
+********************************************/
+void push(struct dynamic_stack *stack, stack_elem_t element);
+
+/*******************************************
+/Функция, которая хэширует данные
+/@param[in] указатель на структуру стэка
+/param[out] хэш
+********************************************/
+unsigned int data_hash(struct dynamic_stack *stack);
+
+/*******************************************
+/Функция, которая хэширует структуру
+/@param[in] указатель на структуру стэка
+/param[out] хэш
+********************************************/
+unsigned int structure_hash(struct dynamic_stack *stack);
+/*******************************************
+/Функция, которая уменьшает стэк с гистрезисом
+/@param[in] указатель на структуру стэка
+********************************************/
+void stack_decrease(struct dynamic_stack *stack);
+
+/*******************************************
+/Функция, которая увеличивает стэк
+/@param[in] указатель на структуру стэка
+********************************************/
+void stack_increase(struct dynamic_stack *stack);
+
+/*******************************************
+/Функция, которая уничтажает стэк
+/@param[in] указатель на структуру стэка
+********************************************/
+void stack_deinit(struct dynamic_stack *stack);
+
+/*******************************************
+/Функция, которая печатает i-ый элемент стэка
+/@param[in] указатель на структуру стэка
+********************************************/
+void stack_values(int i, struct dynamic_stack *stack);
+
+/*******************************************
+/Функция, которая проеверяет стэк
+/@param[in] указатель на структуру стэка
+/@param[out] код ошибки
+********************************************/
+int verification(struct dynamic_stack *stack);
 
 
 enum ERROR_CODES
@@ -47,26 +118,37 @@ struct dynamic_stack
     stack_elem_t *data;
     int counter;
     int size;
-    unsigned int hash;
-    char stack_canary_last;
+    unsigned int data_hash;
+    unsigned int structure_hash;
     const char *name;
-
+    char stack_canary_last;
 };
 
-unsigned int hash(struct dynamic_stack *stack)
+unsigned int data_hash(struct dynamic_stack *stack)
 {
     unsigned int hash = 0;
 
     for(int i = 0; i < stack->size; i++)
+    {
         hash = (hash * 1664525) + (unsigned char)stack->data[i] + 1013904223;
+    }
     return hash;
 }
 
+unsigned int structure_hash(struct dynamic_stack *stack)
+{
+    unsigned int hash = 0;
+    hash = stack->counter *(stack->size) + 142091 * (long)stack->data *(long)stack->name + stack->data_hash;
+    return hash;
+}
 
 void stack_values(int i, struct dynamic_stack *stack)
 {
-    printf("data[%d]: ", i);
-    std::cout << stack->data[i] << "\n";
+    if (i >= 0)
+    {
+        printf("data[%d]: ", i);
+        std::cout << stack->data[i] << "\n";
+    }
 }
 void crash(struct dynamic_stack *stack, int code)
 {
@@ -75,7 +157,7 @@ void crash(struct dynamic_stack *stack, int code)
     case DEAD_CANARY_IN_DATA:
         if(verbose)
         {
-        printf(" STACK: %s of type %s", stack->name, typeid(stack).name());
+        printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
         printf("ERROR %d DEAD CANARY IN DATA\n", code);
         printf("canaries are:\nfirst:%c   last:%c\n\n", (int)stack->data[-1], (int)stack->data[stack->size]);
         printf("should be   :\nfirst:%c   last:%c\n", CANARY, CANARY);
@@ -85,6 +167,7 @@ void crash(struct dynamic_stack *stack, int code)
     case DEAD_CANARY_IN_STRUCTURE:
         if (verbose)
         {
+            printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
             printf("ERROR %d DEAD CANARY IN STRUCTURES\n", code);
             printf("canaries are:\nfirst:%c   last:%c\n\n", (int)stack->stack_canary_first, (int)stack->stack_canary_last);
             printf("should be   :\nfirst:%c   last:%c\n", (int)CANARY, (int)CANARY);
@@ -94,6 +177,7 @@ void crash(struct dynamic_stack *stack, int code)
     case STACK_OVERFLOW:
         if (verbose)
         {
+            printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
             printf("ERROR %d STACK OVERFLOW\n", code);
             for (int i = stack->size - 6; i < stack->size; i++)
             {
@@ -106,6 +190,7 @@ void crash(struct dynamic_stack *stack, int code)
     case STACK_UNDERFLOW:
         if (verbose)
         {
+            printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
             printf("ERROR %d STACK UNDERFLOW\n", code);
             for (int i = 5; i >= 0; i--)
             {
@@ -118,14 +203,16 @@ void crash(struct dynamic_stack *stack, int code)
     case WRONG_SUM:
         if (verbose)
         {
+            printf(" STACK: %s of type %s\n", stack->name, typeid(stack).name());
             printf("ERROR %d WRONG HASH SUM\n", code);
-            printf ("hash is %u but should be %u", stack->hash, hash(stack));
+            printf ("hash is %u but should be %u", stack->data_hash, data_hash(stack));
         }
         exit(WRONG_SUM);
         break;
     case DESTROYED_STACK:
         if (verbose)
         {
+            printf(" STACK: %s of type %s\n", stack->name, typeid(stack).name());
             printf("ERROR %d DESTROYED STACK\n", code);
             printf("STACK IS DESTROYED");
         }
@@ -134,6 +221,7 @@ void crash(struct dynamic_stack *stack, int code)
     case MEMMORY_ALLOC_PROBLEMS:
         if (verbose)
         {
+            printf(" STACK: %s of type %s\n", stack->name, typeid(stack).name());
             printf("ERROR %d MEMORY ALLOCATION ERROR\n", code);
         }
     };
@@ -149,7 +237,8 @@ void stack_init(struct dynamic_stack *stack)
     stack->data = mem_block + 1;
     stack->counter = 0;
     stack->size = DEFAULT_STACK_SIZE;
-    stack->hash = hash(stack);
+    stack->data_hash = data_hash(stack);
+    stack->structure_hash = structure_hash(stack);
     stack->stack_canary_last = CANARY;
 }
 
@@ -176,7 +265,7 @@ int verification(struct dynamic_stack *stack)
     {
         return STACK_UNDERFLOW;
     }
-    if (hash(stack) != stack->hash)
+    if (data_hash(stack) != stack->data_hash || structure_hash(stack) != stack->structure_hash)
     {
         return WRONG_SUM;
     }
@@ -198,7 +287,8 @@ void stack_increase(struct dynamic_stack *stack)
         stack->size = stack->size * RESIZE_CONSTANT;
         stack->data[-1] = (stack_elem_t)CANARY;
         stack->data[stack->size] = (stack_elem_t)CANARY;
-        stack->hash = hash(stack);
+        stack->data_hash = data_hash(stack);
+        stack->structure_hash = structure_hash(stack);
     }
 }
 void stack_decrease(struct dynamic_stack *stack)
@@ -209,7 +299,8 @@ void stack_decrease(struct dynamic_stack *stack)
         stack->size = stack->size / RESIZE_CONSTANT;
         stack->data[-1] = (stack_elem_t)CANARY;
         stack->data[stack->size] = (stack_elem_t)CANARY;
-        stack->hash = hash(stack);
+        stack->data_hash = data_hash(stack);
+        stack->structure_hash = structure_hash(stack);
     }
 }
 
@@ -223,7 +314,8 @@ void push(struct dynamic_stack *stack, stack_elem_t element)
         {
             stack->data[stack->counter] = element;
             stack->counter++;
-            stack->hash = hash(stack);
+            stack->data_hash = data_hash(stack);
+            stack->structure_hash = structure_hash(stack);
         }
         if (stack->counter == stack->size)
         {
@@ -247,19 +339,27 @@ stack_elem_t pop(struct dynamic_stack *stack)
     ERROR_CODE = verification(stack);
     if (ERROR_CODE == 0)
     {
-        stack_decrease(stack);
-        stack->counter--;
-        stack_elem_t result = stack->data[stack->counter];
-        stack->data[stack->counter] = POISON;
-        stack->hash = hash(stack);
-        ERROR_CODE = verification(stack);
-        if (ERROR_CODE == 0)
+        if (stack->counter > 0)
         {
-            return result;
+            stack_decrease(stack);
+            stack->counter--;
+            stack_elem_t result = stack->data[stack->counter];
+            stack->data[stack->counter] = POISON;
+            stack->data_hash = data_hash(stack);
+            stack->structure_hash = structure_hash(stack);
+            ERROR_CODE = verification(stack);
+            if (ERROR_CODE == 0)
+            {
+                return result;
+            }
+            else
+            {
+                crash(stack, ERROR_CODE);
+            }
         }
-        else
+        if (stack->counter == 0)
         {
-            crash(stack, ERROR_CODE);
+            printf("stack is empty!");
         }
     }
     else
@@ -278,7 +378,8 @@ void stack_deinit(struct dynamic_stack *stack)
         free(stack->data - 1);
         stack->counter = POISON;
         stack->size = POISON;
-        stack->hash = POISON;
+        stack->data_hash = POISON;
+        stack->structure_hash = POISON;
         stack = NULL;
     }
     else
@@ -290,13 +391,31 @@ void stack_deinit(struct dynamic_stack *stack)
 
 int main()
 {
-    int a;
     struct dynamic_stack stack1;
     STACK_INIT(stack1);
-    for (int i = 0; i < 70; i++)
+    for (int i = 0; i < 500; i++)
     {
         push(&stack1, i);
+        stack_values(i, &stack1);
     }
-    stack1.data[-1] = 67;
-    push(&stack1, 69);
+    printf("test 1: PASSED\n");
+    for (int i = 499; i >= 0; i--)
+    {
+        printf("%d ", pop(&stack1));
+        printf("%d\n", stack1.structure_hash);
+    }
+    printf("test 2: PASSED\n");
+    for (int i = 0; i <= 55; i++)
+    {
+        push(&stack1, i);
+        printf("%d\n", stack1.size);
+    }
+    printf("pop time");
+    for (int i = 55; i >= 45; i--)
+    {
+        pop(&stack1);
+        printf("%d\n", stack1.size);
+    }
+    printf("%d", stack1.counter);
+
 }
