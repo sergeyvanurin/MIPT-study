@@ -10,16 +10,17 @@
 #define get_var_name( var ) #var
 
 #ifdef DIAGNOSE
-#define $ON_DIAG( code ) code
+    #define $ON_DIAG( code ) code
 #else
-#define $ON_DIAG( code ) 
+    #define $ON_DIAG( code ) 
 #endif
 
 
+
 #ifndef DIAGNOSE
-#define VERBOSE 0
+    #define VERBOSE 0
 #else
-#define VERBOSE 1
+    #define VERBOSE 1
 #endif
 
 
@@ -28,6 +29,8 @@
         stack->data[stack->size] = (stack_elem_t)CANARY; \
         stack->data_hash = data_hash(stack);             \
         stack->structure_sum = structure_hash(stack);    \
+
+
 
 #define STACK_INIT(stack)                     \
         {                                     \
@@ -44,6 +47,7 @@
     }                                       \
 
 int ERROR_CODE = 0;
+
 
 const   char  CANARY = 0xAB;
 const   int   POISON = -666;
@@ -143,10 +147,10 @@ struct dynamic_stack
 
     $ON_DIAG
     (
-    const char *name;
-    unsigned int data_hash;
-    unsigned long structure_sum;
-    char stack_canary_last;
+        const char *name;
+        unsigned int data_hash;
+        unsigned long structure_sum;
+        char stack_canary_last;
     )
 };
 
@@ -174,7 +178,7 @@ unsigned long structure_hash(struct dynamic_stack *stack)
         char i = 0;
         while (((char*)&stack->stack_canary_first + i) != (char*)&(stack->stack_canary_last))
         {
-            if((&stack->stack_canary_first + i) != (char*)&(stack->structure_sum))
+            if ((&stack->stack_canary_first + i) != (char*)&(stack->structure_sum))
             {
                 hash = hash + (long)*(&stack->stack_canary_first + i);
                 i++;
@@ -191,7 +195,7 @@ unsigned long structure_hash(struct dynamic_stack *stack)
 
 void stack_values(int i, struct dynamic_stack *stack)
 {
-    if (i >= 0 && i < stack->counter && stack != NULL && stack->data != NULL)
+    if (i >= 0 && stack != NULL && stack->data != NULL)
     {
         printf("data[%d]: ", i);
         std::cout << stack->data[i] << "\n";
@@ -203,86 +207,94 @@ void dump(struct dynamic_stack *stack, int code)
 {
     $ON_DIAG
     (
-    if (VERBOSE)
-    {
-        printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
-    }
-    switch (code)
-    {
-    case OK:
-        if(VERBOSE)
-        {
-            printf("stack is OK\n");
-        }
-        break;
-
-
-    case DEAD_CANARY_IN_DATA:
-        if(VERBOSE)
-        {
-            printf("ERROR %d DEAD CANARY IN DATA\n", code);
-            printf("canaries are:\nfirst:%c   last:%c\n\n", (int)stack->data[-1], (int)stack->data[stack->size]);
-            printf("should be   :\nfirst:%c   last:%c\n", CANARY, CANARY);
-        }
-        break;
-
-
-    case DEAD_CANARY_IN_STRUCTURE:
-        if (VERBOSE)
-        {
-            printf("ERROR %d DEAD CANARY IN STRUCTURES\n", code);
-            printf("canaries are:\nfirst:%d   last:%d\n\n", (int)stack->stack_canary_first, (int)stack->stack_canary_last);
-            printf("should be:\nfirst:%d   last:%d\n", (int)CANARY, (int)CANARY);
-        }
-        break;
-
-
-    case STACK_OVERFLOW:
-        if (VERBOSE)
-        {
-            printf("ERROR %d STACK OVERFLOW\n", code);
-            printf("Counter is %d but should be lesser than %d\n", stack->stack_canary_last, stack->size);
-        }
-        break;
-
-
-    case STACK_UNDERFLOW:
-        if (VERBOSE)
-        {
-            printf("ERROR %d STACK UNDERFLOW\n", code);
-            printf("counter should not be lesser than 0 but is %d\n", stack->counter);
-        }
-        break;
-
-
-    case WRONG_SUM:
-        if (VERBOSE)
-        {
-            printf("ERROR %d WRONG HASH SUM\n", code);
-            printf ("data hash is %u; should be %u\n", data_hash(stack), stack->data_hash);
-            printf ("structure hash is %lu; should be %lu\n", structure_hash(stack), stack->structure_sum);
-        }
-        break;
-
-
-    case DESTROYED_STACK:
         if (VERBOSE)
         {
             printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
-            printf("ERROR %d DESTROYED STACK\n", code);
-            printf("STACK IS DESTROYED\n");
         }
-        break;
-
-
-    case MEMMORY_ALLOC_PROBLEMS:
-        if (VERBOSE)
+        if ((ERROR_CODE != DESTROYED_STACK) && (ERROR_CODE != MEMMORY_ALLOC_PROBLEMS))
         {
-            printf("ERROR %d MEMORY ALLOCATION ERROR\n", code);
+            printf("STACK adress is %p\n", stack);
+            for (int i = 0; i < stack->size; i++)
+            {
+                stack_values(i, stack);
+            }
         }
-        break;
+        switch (code)
+        {
+        case OK:
+            if (VERBOSE)
+            {
+                printf("stack is OK\n");
+            }
+            break;
 
-    };
+
+        case DEAD_CANARY_IN_DATA:
+            if (VERBOSE)
+            {
+                printf("ERROR %d DEAD CANARY IN DATA\n", code);
+                printf("canaries are:\nfirst:%c   last:%c\n\n", (int)stack->data[-1], (int)stack->data[stack->size]);
+                printf("should be   :\nfirst:%c   last:%c\n", CANARY, CANARY);
+            }
+            break;
+
+
+        case DEAD_CANARY_IN_STRUCTURE:
+            if (VERBOSE)
+            {
+                printf("ERROR %d DEAD CANARY IN STRUCTURES\n", code);
+                printf("canaries are:\nfirst:%d   last:%d\n\n", (int)stack->stack_canary_first, (int)stack->stack_canary_last);
+                printf("should be:\nfirst:%d   last:%d\n", (int)CANARY, (int)CANARY);
+            }
+            break;
+
+
+        case STACK_OVERFLOW:
+            if (VERBOSE)
+            {
+                printf("ERROR %d STACK OVERFLOW\n", code);
+                printf("Counter is %d but should be lesser than %d\n", stack->stack_canary_last, stack->size);
+            }
+            break;
+
+
+        case STACK_UNDERFLOW:
+            if (VERBOSE)
+            {
+                printf("ERROR %d STACK UNDERFLOW\n", code);
+                printf("counter should not be lesser than 0 but is %d\n", stack->counter);
+            }
+            break;
+
+
+        case WRONG_SUM:
+            if (VERBOSE)
+            {
+                printf("ERROR %d WRONG HASH SUM\n", code);
+                printf("data hash is %u; should be %u\n", data_hash(stack), stack->data_hash);
+                printf("structure hash is %lu; should be %lu\n", structure_hash(stack), stack->structure_sum);
+            }
+            break;
+
+
+        case DESTROYED_STACK:
+            if (VERBOSE)
+            {
+                printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
+                printf("ERROR %d DESTROYED STACK\n", code);
+                printf("STACK IS DESTROYED\n");
+            }
+            break;
+
+
+        case MEMMORY_ALLOC_PROBLEMS:
+            if (VERBOSE)
+            {
+                printf("ERROR %d MEMORY ALLOCATION ERROR\n", code);
+            }
+            break;
+        
+        };
     )
 }
 
@@ -313,36 +325,37 @@ bool stack_init(struct dynamic_stack *stack)
 
 int verification(struct dynamic_stack *stack)
 {
-    $ON_DIAG(
-    if (stack->counter == POISON)
-    {
-        return DESTROYED_STACK;
-    }
-    if (stack->data - 1 == NULL)
-    {
-        return MEMMORY_ALLOC_PROBLEMS;
-    }
-    if (stack->data[-1] != CANARY || stack->data[stack->size] != CANARY)
-    {
-        return DEAD_CANARY_IN_DATA;
-    }
-    if (stack->stack_canary_first != CANARY || stack->stack_canary_last != CANARY)
-    {
-        return DEAD_CANARY_IN_STRUCTURE;
-    }
-    if (stack->counter > stack->size)
-    {
-        return STACK_OVERFLOW;
-    }
-    if (stack->counter < 0)
-    {
-        return STACK_UNDERFLOW;
-    }
-    if (data_hash(stack) != stack->data_hash || structure_hash(stack) != stack->structure_sum)
-    {
-        return WRONG_SUM;
-    }
-    return 0;
+    $ON_DIAG
+    (
+        if (stack->counter == POISON)
+        {
+            return DESTROYED_STACK;
+        }
+        if (stack->data - 1 == NULL)
+        {
+            return MEMMORY_ALLOC_PROBLEMS;
+        }
+        if (stack->data[-1] != CANARY || stack->data[stack->size] != CANARY)
+        {
+            return DEAD_CANARY_IN_DATA;
+        }
+        if (stack->stack_canary_first != CANARY || stack->stack_canary_last != CANARY)
+        {
+            return DEAD_CANARY_IN_STRUCTURE;
+        }
+        if (stack->counter > stack->size)
+        {
+            return STACK_OVERFLOW;
+        }
+        if (stack->counter < 0)
+        {
+            return STACK_UNDERFLOW;
+        }
+        if (data_hash(stack) != stack->data_hash || structure_hash(stack) != stack->structure_sum)
+        {
+            return WRONG_SUM;
+        }
+        return 0;
     )
 }
 
@@ -556,7 +569,7 @@ bool drew_underflow ()
     STACK_INIT (test_stack)
     pop (&test_stack);
     if (ERROR_CODE == STACK_UNDERFLOW) return 1;
-        else return 0;
+    else return 0;
 }
 
 bool deinit_crash_test()
@@ -570,16 +583,15 @@ bool deinit_crash_test()
 }
 int main()
 {
-    assert (drew_underflow ());
+    //assert (drew_underflow ());
 
     //deinit_crash_test ();
 
 
 
 
-    //push_test();
-    //pop_test();
-    //hysteresis_test();
-    //corruption_test();
-    //deinit_test();
+    push_test();
+    pop_test();
+    hysteresis_test();
+    corruption_test();
 }
