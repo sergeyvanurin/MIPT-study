@@ -79,13 +79,6 @@ bool pop(struct dynamic_stack *stack, stack_elem_t *popped_element);
 bool push(struct dynamic_stack *stack, stack_elem_t element);
 
 /*******************************************
-/Функция, которая хэширует данные
-/@param[in] указатель на структуру стэка
-/param[out] хэш
-********************************************/
-//unsigned int data_hash(struct dynamic_stack *stack);
-
-/*******************************************
 /Функция, которая хэширует структуру
 /@param[in] указатель на структуру стэка
 /param[out] хэш
@@ -154,17 +147,6 @@ struct dynamic_stack
     )
 };
 
-/*
-unsigned int data_hash(struct dynamic_stack *stack)
-{
-    unsigned int hash = 0;
-    for (int i = 0; i < stack->size; i++)
-    {
-        hash = (hash * 1664525) + (unsigned char)stack->data[i] + 1013904223;
-    }
-    return hash;
-}
-*/
 
 
 static unsigned long hash_function(void *first_ptr, void *last_ptr)
@@ -383,7 +365,7 @@ bool push(struct dynamic_stack *stack, stack_elem_t element)
 
 bool pop(struct dynamic_stack *stack, stack_elem_t *popped_element)
 {
-    VERIFICATION(stack, POISON)
+    VERIFICATION(stack, 0)
     if (((stack->counter + HYSTERESIS) == (stack->size / RESIZE_CONSTANT)) && ((stack->counter + HYSTERESIS) >= DEFAULT_STACK_SIZE))
     {
         stack_decrease(stack);
