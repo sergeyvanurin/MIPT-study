@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <iostream>
 
+//#define DUMP
 #define DIAGNOSE
 #define TEST_MODE
 
@@ -17,18 +18,12 @@
 
 
 
-#ifndef DIAGNOSE
+#ifndef DUMP
     #define VERBOSE 0
 #else
     #define VERBOSE 1
 #endif
 
-
-#define UPDATE(stack)                                    \
-        stack->data[-1] = (stack_elem_t)CANARY;          \
-        stack->data[stack->size] = (stack_elem_t)CANARY; \
-        stack->data_hash = data_hash(stack);             \
-        stack->structure_sum = structure_hash(stack);    \
 
 
 
@@ -39,12 +34,16 @@
         }                                     \
 
 
-#define VERIFICATION(stack, return_value)   \
-    ERROR_CODE = verification(stack);       \
-    if (ERROR_CODE != 0)                    \
-    {                                       \
-        return return_value;                \
-    }                                       \
+#define VERIFICATION(stack, return_value)     \
+    ERROR_CODE = verification(stack);         \
+    if (ERROR_CODE != 0)                      \
+    {                                         \
+        if (VERBOSE)                          \
+        {                                     \
+            dump(stack, ERROR_CODE);          \
+        }                                     \
+        return return_value;                  \
+    }                                         \
 
 int ERROR_CODE = 0;
 
@@ -70,7 +69,7 @@ bool stack_init(struct dynamic_stack *stack);
 /@param[in] указатель на структуру стэка
 /@param[out] элемент стэка
 ********************************************/
-stack_elem_t pop(struct dynamic_stack *stack);
+bool pop(struct dynamic_stack *stack, stack_elem_t *popped_element);
 
 /*******************************************
 /Функция, которая заносит эдемент в стек
@@ -84,14 +83,14 @@ bool push(struct dynamic_stack *stack, stack_elem_t element);
 /@param[in] указатель на структуру стэка
 /param[out] хэш
 ********************************************/
-unsigned int data_hash(struct dynamic_stack *stack);
+//unsigned int data_hash(struct dynamic_stack *stack);
 
 /*******************************************
 /Функция, которая хэширует структуру
 /@param[in] указатель на структуру стэка
 /param[out] хэш
 ********************************************/
-unsigned long structure_hash(struct dynamic_stack *stack);
+static unsigned long hash_function(void *first_ptr, void* last_pointer);
 
 /*******************************************
 /Функция, которая уменьшает стэк с гистрезисом
@@ -139,7 +138,8 @@ enum ERROR_CODES
 
 
 struct dynamic_stack
-{   $ON_DIAG(char stack_canary_first;)
+{   
+    $ON_DIAG(char stack_canary_first;)
     
     stack_elem_t *data;
     int counter;
@@ -148,154 +148,113 @@ struct dynamic_stack
     $ON_DIAG
     (
         const char *name;
-        unsigned int data_hash;
+        unsigned long data_hash;
         unsigned long structure_sum;
         char stack_canary_last;
     )
 };
 
-
+/*
 unsigned int data_hash(struct dynamic_stack *stack)
 {
-    $ON_DIAG
-    (
-        unsigned int hash = 0;
-
-        for (int i = 0; i < stack->size; i++)
-        {
-            hash = (hash * 1664525) + (unsigned char)stack->data[i] + 1013904223;
-        }
-        return hash;
-    )
-}
-
-
-unsigned long structure_hash(struct dynamic_stack *stack)
-{
-    $ON_DIAG
-    (
-        unsigned long hash = 0;
-        char i = 0;
-        while (((char*)&stack->stack_canary_first + i) != (char*)&(stack->stack_canary_last))
-        {
-            if ((&stack->stack_canary_first + i) != (char*)&(stack->structure_sum))
-            {
-                hash = hash + (long)*(&stack->stack_canary_first + i);
-                i++;
-            }
-            else
-            {
-                i = i + sizeof(long);
-            }
-        }   
-        return hash;
-    )
-}
-
-
-void stack_values(int i, struct dynamic_stack *stack)
-{
-    if (i >= 0 && stack != NULL && stack->data != NULL)
+    unsigned int hash = 0;
+    for (int i = 0; i < stack->size; i++)
     {
-        printf("data[%d]: ", i);
-        std::cout << stack->data[i] << "\n";
+        hash = (hash * 1664525) + (unsigned char)stack->data[i] + 1013904223;
     }
+    return hash;
+}
+*/
+
+
+static unsigned long hash_function(void *first_ptr, void *last_ptr)
+{
+    unsigned long hash = 0;
+    int i = 0;
+    while((char*)first_ptr + i != (char*)last_ptr)
+    {
+        hash = hash + (unsigned long)*((char*)first_ptr + i);
+        i++;
+    }
+    return hash;
 }
 
+
+static void update(struct dynamic_stack *stack)
+{                                                                                                                                                      
+    stack->data[-1] = (stack_elem_t)CANARY;                                                                                                                            
+    stack->data[stack->size] = (stack_elem_t)CANARY;                                                                                                                  
+    stack->data_hash = hash_function(stack->data, stack->data + stack->size + 1);                                                                                      
+    stack->structure_sum = hash_function(&stack->stack_canary_first, &stack->structure_sum) + hash_function(&stack->structure_sum + 1, &stack->stack_canary_last + 1); 
+}
 
 void dump(struct dynamic_stack *stack, int code)
 {
-    $ON_DIAG
-    (
-        if (VERBOSE)
+    printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
+
+    if ((ERROR_CODE != DESTROYED_STACK) && (ERROR_CODE != MEMMORY_ALLOC_PROBLEMS))
+    {
+        printf("STACK adress is %p\n", stack);
+        for (int i = 0; i < stack->size; i++)
         {
-            printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
+            printf("data[%d]: ", i + 1);
+            std::cout << stack->data[i] << "\n";
         }
-        if ((ERROR_CODE != DESTROYED_STACK) && (ERROR_CODE != MEMMORY_ALLOC_PROBLEMS))
-        {
-            printf("STACK adress is %p\n", stack);
-            for (int i = 0; i < stack->size; i++)
-            {
-                stack_values(i, stack);
-            }
-        }
-        switch (code)
-        {
+    }
+
+    switch (code)
+    {
         case OK:
-            if (VERBOSE)
-            {
-                printf("stack is OK\n");
-            }
-            break;
+            printf("stack is OK\n");
+        break;
 
 
-        case DEAD_CANARY_IN_DATA:
-            if (VERBOSE)
-            {
+        $ON_DIAG
+        (
+            case DEAD_CANARY_IN_DATA:
                 printf("ERROR %d DEAD CANARY IN DATA\n", code);
                 printf("canaries are:\nfirst:%c   last:%c\n\n", (int)stack->data[-1], (int)stack->data[stack->size]);
                 printf("should be   :\nfirst:%c   last:%c\n", CANARY, CANARY);
-            }
             break;
 
 
-        case DEAD_CANARY_IN_STRUCTURE:
-            if (VERBOSE)
-            {
+            case DEAD_CANARY_IN_STRUCTURE:
                 printf("ERROR %d DEAD CANARY IN STRUCTURES\n", code);
                 printf("canaries are:\nfirst:%d   last:%d\n\n", (int)stack->stack_canary_first, (int)stack->stack_canary_last);
                 printf("should be:\nfirst:%d   last:%d\n", (int)CANARY, (int)CANARY);
-            }
             break;
+
+            
+            case WRONG_SUM:
+                printf("ERROR %d WRONG HASH SUM\n", code);
+                printf("data hash is %lu; should be %lu\n", hash_function(stack->data, stack->data + stack->size + 1), stack->data_hash);
+                printf("structure hash is %lu; should be %lu\n", hash_function(&stack->stack_canary_first, &stack->structure_sum) + hash_function(&stack->structure_sum + 1, &stack->stack_canary_last + 1), stack->structure_sum);
+            break;
+        )
 
 
         case STACK_OVERFLOW:
-            if (VERBOSE)
-            {
-                printf("ERROR %d STACK OVERFLOW\n", code);
-                printf("Counter is %d but should be lesser than %d\n", stack->stack_canary_last, stack->size);
-            }
-            break;
+            printf("ERROR %d STACK OVERFLOW\n", code);
+            printf("Counter is %d but should be lesser than %d\n", stack->counter, stack->size);
+        break;
 
 
         case STACK_UNDERFLOW:
-            if (VERBOSE)
-            {
-                printf("ERROR %d STACK UNDERFLOW\n", code);
-                printf("counter should not be lesser than 0 but is %d\n", stack->counter);
-            }
-            break;
-
-
-        case WRONG_SUM:
-            if (VERBOSE)
-            {
-                printf("ERROR %d WRONG HASH SUM\n", code);
-                printf("data hash is %u; should be %u\n", data_hash(stack), stack->data_hash);
-                printf("structure hash is %lu; should be %lu\n", structure_hash(stack), stack->structure_sum);
-            }
-            break;
+            printf("ERROR %d STACK UNDERFLOW\n", code);
+            printf("counter should not be lesser than 0 but is %d\n", stack->counter);
+        break;
 
 
         case DESTROYED_STACK:
-            if (VERBOSE)
-            {
-                printf("STACK: %s of type %s\n", stack->name, typeid(stack).name());
-                printf("ERROR %d DESTROYED STACK\n", code);
-                printf("STACK IS DESTROYED\n");
-            }
-            break;
+            printf("ERROR %d DESTROYED STACK\n", code);
+            printf("STACK IS DESTROYED\n");
+        break;
 
 
         case MEMMORY_ALLOC_PROBLEMS:
-            if (VERBOSE)
-            {
-                printf("ERROR %d MEMORY ALLOCATION ERROR\n", code);
-            }
-            break;
-        
+            printf("ERROR %d MEMORY ALLOCATION ERROR\n", code);
+        break;
         };
-    )
 }
 
 
@@ -306,57 +265,66 @@ bool stack_init(struct dynamic_stack *stack)
     if (mem_block == NULL)
     {
         ERROR_CODE = MEMMORY_ALLOC_PROBLEMS;
-        $ON_DIAG(dump(stack, ERROR_CODE);)
+        if (VERBOSE) dump(stack, ERROR_CODE);
         return 0;
     }
+
     $ON_DIAG(stack->stack_canary_first = CANARY;)
 
     stack->data = mem_block + 1;
     stack->counter = 0;
     stack->size = DEFAULT_STACK_SIZE;
+
     $ON_DIAG
     (
-        UPDATE(stack)
         stack->stack_canary_last = CANARY;
+        update(stack);
     )
+
     return 1;
 }
 
 
 int verification(struct dynamic_stack *stack)
 {
+    if (stack == NULL || stack->counter == POISON)
+    {
+        return DESTROYED_STACK;
+    }
     $ON_DIAG
     (
-        if (stack->counter == POISON)
+        if (hash_function(stack->data, stack->data + stack->size + 1) != stack->data_hash || hash_function(&stack->stack_canary_first, &stack->structure_sum) + hash_function(&stack->structure_sum + 1, &stack->stack_canary_last + 1) != stack->structure_sum)
         {
-            return DESTROYED_STACK;
+            return WRONG_SUM;
         }
+
         if (stack->data - 1 == NULL)
         {
             return MEMMORY_ALLOC_PROBLEMS;
         }
+
         if (stack->data[-1] != CANARY || stack->data[stack->size] != CANARY)
         {
             return DEAD_CANARY_IN_DATA;
         }
+
         if (stack->stack_canary_first != CANARY || stack->stack_canary_last != CANARY)
         {
             return DEAD_CANARY_IN_STRUCTURE;
         }
-        if (stack->counter > stack->size)
-        {
-            return STACK_OVERFLOW;
-        }
-        if (stack->counter < 0)
-        {
-            return STACK_UNDERFLOW;
-        }
-        if (data_hash(stack) != stack->data_hash || structure_hash(stack) != stack->structure_sum)
-        {
-            return WRONG_SUM;
-        }
-        return 0;
     )
+
+    if (stack->counter > stack->size)
+    {
+        return STACK_OVERFLOW;
+    }
+
+    if (stack->counter < 0)
+    {
+        return STACK_UNDERFLOW;
+    }
+
+    return 0;
 }
 
 
@@ -367,11 +335,12 @@ bool stack_increase(struct dynamic_stack *stack)
     if (new_mem_block == NULL)
     {
         ERROR_CODE = MEMMORY_ALLOC_PROBLEMS;
+        if (VERBOSE) dump(stack, ERROR_CODE);
         return 0;
     }
     stack->data = (stack_elem_t*)new_mem_block + 1;
     stack->size = stack->size * RESIZE_CONSTANT;
-    $ON_DIAG(UPDATE(stack))
+    $ON_DIAG(update(stack);)
     return 1;
 }
 
@@ -383,11 +352,12 @@ bool stack_decrease(struct dynamic_stack *stack)
     if (new_mem_block == NULL)
     {
         ERROR_CODE = MEMMORY_ALLOC_PROBLEMS;
+        if (VERBOSE) dump(stack, ERROR_CODE);
         return 0;
     }
     stack->data = (stack_elem_t*)new_mem_block + 1;
     stack->size = stack->size / RESIZE_CONSTANT;
-    $ON_DIAG(UPDATE(stack));
+    $ON_DIAG(update(stack);)
     return 1;
 }
 
@@ -400,7 +370,7 @@ bool push(struct dynamic_stack *stack, stack_elem_t element)
     {
         stack->data[stack->counter] = element;
         stack->counter++;
-        $ON_DIAG(UPDATE(stack))
+        $ON_DIAG(update(stack);)
     }
     if (stack->counter == stack->size)
     {
@@ -411,7 +381,7 @@ bool push(struct dynamic_stack *stack, stack_elem_t element)
 }
 
 
-stack_elem_t pop(struct dynamic_stack *stack)
+bool pop(struct dynamic_stack *stack, stack_elem_t *popped_element)
 {
     VERIFICATION(stack, POISON)
     if (((stack->counter + HYSTERESIS) == (stack->size / RESIZE_CONSTANT)) && ((stack->counter + HYSTERESIS) >= DEFAULT_STACK_SIZE))
@@ -423,16 +393,18 @@ stack_elem_t pop(struct dynamic_stack *stack)
     {
         stack_elem_t result = stack->data[stack->counter];
         stack->data[stack->counter] = POISON;
-        $ON_DIAG(UPDATE(stack));
+        $ON_DIAG(update(stack);)
         VERIFICATION(stack, 0)
-        return result;
+        *popped_element = result;
+        return 1; 
     }
     else
     {
         ERROR_CODE = STACK_UNDERFLOW;
-        return POISON;
+        if (VERBOSE) dump(stack, ERROR_CODE);
+        return 0;
     }
-    return POISON;
+    return 0;
 }
 
 
@@ -475,14 +447,18 @@ bool pop_test()
 {
     struct dynamic_stack test_stack;
     STACK_INIT(test_stack)
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 500; i++)
     {
         push(&test_stack, i);
+        if (ERROR_CODE != 0)
+        {
+            dump(&test_stack, ERROR_CODE);
+        }
     }
     for (int i = 0; i < 100; i++)
     {
         int a = 0;
-        a = pop(&test_stack);
+        pop(&test_stack, &a);
         if (ERROR_CODE != 0 || a == POISON)
         {
             dump(&test_stack, ERROR_CODE);
@@ -495,6 +471,7 @@ bool pop_test()
 }
 bool hysteresis_test()
 {
+    int a = 0;
     struct dynamic_stack test_stack;
     STACK_INIT(test_stack)
     for (int i = 0; i < 70; i++)
@@ -503,7 +480,7 @@ bool hysteresis_test()
     }
     for (int i = 0; i < 25; i++)
     {
-        pop(&test_stack);
+        pop(&test_stack, &a);
     }
     if (test_stack.counter == 45 && test_stack.size == 100)
     {
@@ -519,13 +496,13 @@ bool hysteresis_test()
 }
 bool corruption_test()
 {
+    int a = 0;
     int result = 0; 
     struct dynamic_stack test_stack;
     STACK_INIT(test_stack)
-    if (pop(&test_stack) == POISON && ERROR_CODE != 0)
+    if (pop(&test_stack, &a) == 0 && ERROR_CODE != 0)
     {
         result++;
-        dump(&test_stack, ERROR_CODE);
     }
     ERROR_CODE = 0;
     test_stack.counter++;
@@ -534,20 +511,18 @@ bool corruption_test()
         push(&test_stack, i);
     }
     test_stack.data[5] = 67;
-    pop(&test_stack);
+    pop(&test_stack, &a);
     if (ERROR_CODE != 0)
     {
         result++;
-        dump(&test_stack, ERROR_CODE);
     }
     ERROR_CODE = 0;
-    test_stack.data_hash = data_hash(&test_stack);
+    test_stack.data_hash = hash_function(test_stack.data, test_stack.data + test_stack.size + 1);
     test_stack.counter++;
     push(&test_stack, 67);
     if (ERROR_CODE != 0)
     {
         result++;
-        dump(&test_stack, ERROR_CODE);
     }
     if (result == 3)
     {
@@ -563,7 +538,7 @@ bool corruption_test()
 }
 #endif
 
-bool drew_underflow ()
+/*ool drew_underflow ()
 {
     dynamic_stack test_stack = {};
     STACK_INIT (test_stack)
@@ -571,6 +546,7 @@ bool drew_underflow ()
     if (ERROR_CODE == STACK_UNDERFLOW) return 1;
     else return 0;
 }
+*/
 
 bool deinit_crash_test()
 {
