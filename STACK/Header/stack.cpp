@@ -83,7 +83,7 @@ bool push(struct dynamic_stack *stack, stack_elem_t element);
 /@param[in] указатель на структуру стэка
 /param[out] хэш
 ********************************************/
-static unsigned long hash_function(void *first_ptr, void* last_pointer);
+static unsigned long hash_function(const void *first_ptr,const  void* last_pointer);
 
 /*******************************************
 /Функция, которая уменьшает стэк с гистрезисом
@@ -149,7 +149,7 @@ struct dynamic_stack
 
 
 
-static unsigned long hash_function(void *first_ptr, void *last_ptr)
+static unsigned long hash_function(const void *first_ptr, const void *last_ptr)
 {
     unsigned long hash = 0;
     int i = 0;
@@ -520,15 +520,16 @@ bool corruption_test()
 }
 #endif
 
-/*ool drew_underflow ()
+bool drew_underflow ()
 {
+    int a = 0;
     dynamic_stack test_stack = {};
     STACK_INIT (test_stack)
-    pop (&test_stack);
+    pop(&test_stack, &a);
     if (ERROR_CODE == STACK_UNDERFLOW) return 1;
     else return 0;
 }
-*/
+
 
 bool deinit_crash_test()
 {
@@ -539,17 +540,20 @@ bool deinit_crash_test()
     stack_deinit (&test_stack);
     return 1;
 }
+
+#define $do( code ) printf ("\n<<< " #code " START:\n"); code; printf (">>> " #code " END:\n\n"); 
+
 int main()
 {
-    //assert (drew_underflow ());
+    $do ( assert (drew_underflow ()); )
 
     //deinit_crash_test ();
 
 
 
 
-    push_test();
-    pop_test();
-    hysteresis_test();
-    corruption_test();
+    $do ( push_test();      )
+    $do ( pop_test();       )
+    $do (hysteresis_test(); )
+    $do (corruption_test(); )
 }
