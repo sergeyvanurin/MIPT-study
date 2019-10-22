@@ -4,9 +4,7 @@
 #include <assert.h>
 #include <iostream>
 
-//#define DUMP
-#define DIAGNOSE
-#define TEST_MODE
+
 
 #define get_var_name( var ) #var
 
@@ -18,10 +16,10 @@
 
 
 
-#ifndef DUMP
-    #define VERBOSE 0
-#else
+#ifdef DUMP
     #define VERBOSE 1
+#else
+    #define VERBOSE 0
 #endif
 
 
@@ -137,10 +135,10 @@ struct dynamic_stack
     stack_elem_t *data;
     int counter;
     int size;
+    const char *name;
 
     $ON_DIAG
     (
-        const char *name;
         unsigned long data_hash;
         unsigned long structure_sum;
         char stack_canary_last;
@@ -161,7 +159,7 @@ static unsigned long hash_function(const void *first_ptr, const void *last_ptr)
     return hash;
 }
 
-
+$ON_DIAG(
 static void update(struct dynamic_stack *stack)
 {                                                                                                                                                      
     stack->data[-1] = (stack_elem_t)CANARY;                                                                                                                            
@@ -169,6 +167,7 @@ static void update(struct dynamic_stack *stack)
     stack->data_hash = hash_function(stack->data, stack->data + stack->size + 1);                                                                                      
     stack->structure_sum = hash_function(&stack->stack_canary_first, &stack->structure_sum) + hash_function(&stack->structure_sum + 1, &stack->stack_canary_last + 1); 
 }
+)
 
 void dump(struct dynamic_stack *stack, int code)
 {
