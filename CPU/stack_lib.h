@@ -159,7 +159,8 @@ static unsigned long hash_function(const void *first_ptr, const void *last_ptr)
     return hash;
 }
 
-$ON_DIAG(
+$ON_DIAG
+(
 static void update(struct dynamic_stack *stack)
 {                                                                                                                                                      
     stack->data[-1] = (stack_elem_t)CANARY;                                                                                                                            

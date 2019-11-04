@@ -4,13 +4,50 @@
 #include "command_enum.h"
 #include "vanur_lib.h"
 
-#define COMMAND_DEFINE(name, num, code, args)    \
-        case CMD_##name:                         \
-             code                                \
-        break;                                   \
+
+const int  MAX_ARGS_COUNT   =               3;
+const int  REGISTER_OFFSET  =               2;
+const int  INTEGER_OFFSET   = sizeof(int) + 1;
+const int  NO_ARG_OFFSET    =               1;
+
+#define COMMAND_DEFINE(name, num, code, args)                               \
+        case CMD_##name:                                                    \
+        printf("COMMAND: %d\n OFFSET: %d\n", num, offset);                  \
+            for (int i = 0; i < args; i++)                                  \
+            {                                                               \
+                if (*(current_command + 1) == '0')                          \
+                {                                                           \
+                    arg[i] = &registers[*(current_command + 2) - 100];      \
+                    offset += REGISTER_OFFSET;                              \
+                    current_command += REGISTER_OFFSET;                     \
+                }                                                           \
+                if (*(current_command + 1) == '1')                          \
+                {                                                           \
+                    arg[i] = ((int*)(current_command + 2));                 \
+                    offset += INTEGER_OFFSET;                               \
+                    current_command += INTEGER_OFFSET;                      \
+                }                                                           \
+                if (*(current_command + 1) == '2')                          \
+                {                                                           \
+                    arg[i] = &buffer[i];                                    \
+                    offset +=  NO_ARG_OFFSET;                               \
+                    current_command += NO_ARG_OFFSET;                       \
+                }                                                           \
+            }                                                               \
+            if (args == 0)                                                  \
+            {                                                               \
+                arg[0] = &buffer[0];                                        \
+            }                                                               \
+            printf("ARGUMENT: %d\n", *arg[0]);                              \
+            offset++;                                                       \
+            code                                                            \
+            printf("CODE COMPLETED\n");                                     \
+        break;                                                              \
 
 enum REGISTERS
 {
+    ZF = 0,
+    SF = 1,
     AX = 100,
     BX = 101,
     CX = 102,
@@ -20,33 +57,31 @@ enum REGISTERS
 void cpu()
 {
     bool exit_flag = 1;
-    int offset = 4;
-    void *commands = file_read("binary.binary");
-    int command_count = *(int*)commands;
+    int offset = 0;
+    char path[] = "binary.binary";
+    void *commands = file_read(path);
     struct dynamic_stack cpu_data_stack;
     STACK_INIT(cpu_data_stack)
+    struct dynamic_stack cpu_call_stack;
+    STACK_INIT(cpu_call_stack)
     int registers[4] = {0, 0, 0, 0};
+    bool flag_registers[2] = {0, 0};
     while (exit_flag)
     {
         char *current_command = (char*)commands + offset;
-        int arg1 = 0, arg2 = 0;
+        int *arg[MAX_ARGS_COUNT] = {};
+        int buffer[MAX_ARGS_COUNT] = {};        
         switch (*current_command)
         {
             #include "commands.h"
         }
     }
-    /*
-    printf("1.%d ",cpu_data_stack.data[0]);
-    printf("2.%d ",cpu_data_stack.counter);
-    printf("3.%d ",registers[0]);
-    printf("4.%d ",registers[1]);
-    printf("5.%d ",registers[2]);
-    printf("6.%d ",registers[3]);
-    */
+    free(commands);
 }
 
 int main()
 {
+    printf("HELLO\n");
     cpu();
     return 0;
 }

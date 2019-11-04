@@ -14,64 +14,125 @@ enum REGISTERS
     DX = 103
 };
 
+const int MAX_BINARY_SIZE = 10000;
+const int MAX_LABEL_COUNT = 50;
+
+#define COMMAND_DEFINE(name, num, code, args)                                                                           \
+                if (string != 0 && strcmp(string, #name) == 0)                                                          \
+                {                                                                                                       \
+                    binary_array[current_pos++] = (char)CMD_##name;                                                     \
+                    bytes = bytes + sizeof(char);                                                                       \
+                    for (int i = 0; i < args; i++)                                                                      \
+                    {                                                                                                   \
+                        string = strtok(NULL, " ");                                                                     \
+                        if (string == 0)                                                                                \
+                        {                                                                                               \
+                            binary_array[current_pos++] = '2';                                                          \
+                            break;                                                                                      \
+                        }                                                                                               \
+                        string[-1] = ' ';                                                                               \
+                        if(string[0] == '[')                                                                            \
+                        {                                                                                               \
+                            binary_array[current_pos++] = '3';                                                          \
+                            bytes += 1;
+                            sscanf(string, "%[")
+                            printf("%s\n", string);                                                                     \
+                        }                                                                                               \
+                        if (strcmp(string, "ax") == 0)                                                                  \
+                        {                                                                                               \
+                            binary_array[current_pos++] = '0';                                                          \
+                            binary_array[current_pos++] = (char)AX;                                                     \
+                            bytes = bytes + sizeof(char) + sizeof(char);                                                \
+                            continue;                                                                                   \
+                        }                                                                                               \
+                        if (strcmp(string, "bx") == 0)                                                                  \
+                        {                                                                                               \
+                            binary_array[current_pos++] = '0';                                                          \
+                            binary_array[current_pos++] = (char)BX;                                                     \
+                            bytes = bytes + sizeof(char) + sizeof(char);                                                \
+                            continue;                                                                                   \
+                        }                                                                                               \
+                        if (strcmp(string, "dx") == 0)                                                                  \
+                        {                                                                                               \
+                            binary_array[current_pos++] = '0';                                                          \
+                            binary_array[current_pos++] = (char)DX;                                                     \
+                            bytes = bytes + sizeof(char) + sizeof(char);                                                \
+                            continue;                                                                                   \
+                        }                                                                                               \
+                        if (strcmp(string, "cx") == 0)                                                                  \
+                        {                                                                                               \
+                            binary_array[current_pos++] = '0';                                                          \
+                            binary_array[current_pos++] = (char)CX;                                                     \
+                            bytes = bytes + sizeof(char) + sizeof(char);                                                \
+                            continue;                                                                                   \
+                        }                                                                                               \
+                        for (int j = 0; j <= labels_count; j++)                                                         \
+                        {                                                                                               \
+                            if ((int)vanur_hash((unsigned char*)string) == labels[j])                                   \
+                            {                                                                                           \
+                                binary_array[current_pos++] = '1';                                                      \
+                                int_to_char_array(binary_array, current_pos, labels[j + MAX_LABEL_COUNT]);              \
+                                current_pos += 4;                                                                       \
+                                bytes = bytes + sizeof(int) + sizeof(char);                                             \
+                                continue_flag = 1;                                                                      \
+                            }                                                                                           \
+                        }                                                                                               \
+                        if (continue_flag)                                                                              \
+                        {                                                                                               \
+                            continue_flag = 0;                                                                          \
+                            continue;                                                                                   \
+                        }                                                                                               \
+                        int argument = atoi(string);                                                                    \
+                        printf("%d\n", argument);                                                                    \
+                        binary_array[current_pos++] = '1';                                                              \
+                        int_to_char_array(binary_array, current_pos, argument);                                         \
+                        current_pos += 4;                                                                               \
+                        bytes = bytes + sizeof(argument) + sizeof(char);                                                \
+                    }                                                                                                   \
+                }                                                                                                       \
 
 
-#define COMMAND_DEFINE(name, num, code, args)                               \
-                if (strcmp(string, #name) == 0)                             \
-                {                                                           \
-                    fprintf(binary_file, "%c", CMD_##name);                 \
-                    for (int i = 0; i < args; i++)                          \
-                    {                                                       \
-                        string = strtok(NULL, " ");                         \
-                        if (strcmp(string, "ax") == 0)                        \
-                        {                                                   \
-                            fprintf(binary_file, "0%c", (unsigned char)AX);           \
-                            continue;                                       \
-                        }                                                   \
-                        if (strcmp(string, "bx") == 0)                        \
-                        {                                                   \
-                            fprintf(binary_file, "0%c", (unsigned char)BX);           \
-                            continue;                                       \
-                        }                                                   \
-                        if (strcmp(string, "dx") == 0)                        \
-                        {                                                   \
-                            fprintf(binary_file, "0%c", (unsigned char)DX);           \
-                            continue;                                       \
-                        }                                                   \
-                        if (strcmp(string, "cx") == 0)                        \
-                        {                                                   \
-                            fprintf(binary_file, "0%c", (unsigned char)CX);           \
-                            continue;                                       \
-                        }                                                   \
-                        int argument = atoi(string);                       \
-                        fprintf(binary_file, "1");             \
-                        fwrite(&argument, sizeof(argument), 1, binary_file);\
-                    }                                                       \
-                }                                                           \
-
-
-
+void int_to_char_array(char* array, int current_pos, int number)
+{
+    for (int i = 0; i < sizeof(number); i++)
+    {
+        array[current_pos++] = *((char*)(&number) + i);
+    }
+}
 
 void assembly(char **index, int lines)
 {
     assert(index);
-    char *string;
-    FILE *binary_file = fopen("binary.binary", "w");
-    assert(binary_file);
-    fwrite(&lines, sizeof(lines), 1, binary_file);
+    bool continue_flag = 0;
+    char *string = 0;
+    int bytes = 0;
+    int labels[MAX_LABEL_COUNT * 2] = {0};
+    char binary_array[MAX_BINARY_SIZE] = {0};
+    int current_pos = 0;
+    int labels_count = -1;
     for(int i = 0; i < lines; i++)
     {
-        string = strtok(index[i]," ");
-        if (string != NULL)
+        string = strtok(index[i], " ");
+        #include "commands.h"
+        if (string != 0 && string[0] == ':')
         {
-            #include "commands.h"
-        }
-        else
-        {
-            #include "commands.h"
+            labels_count++;
+            labels[labels_count] = (int)vanur_hash((unsigned char*)&string[1]);
+            labels[labels_count + MAX_LABEL_COUNT] = bytes;
         }
     }
+    current_pos = 0;
+    bytes = 0;
+    for(int i = 0; i < lines; i++)
+    {
+        string = strtok(index[i], " ");
+        #include "commands.h"
+    }
+    FILE *binary = fopen("binary.binary", "w");
+    fwrite(binary_array, sizeof(char), bytes, binary);
+    fclose(binary);   
 }
+
 
 
 int main()
