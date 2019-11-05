@@ -14,8 +14,10 @@ enum REGISTERS
     DX = 103
 };
 
+bool ERROR_FLAG = 0;
 const int MAX_BINARY_SIZE = 10000;
 const int MAX_LABEL_COUNT = 50;
+const int MAX_BUFFER_SIZE = 50;
 
 #define COMMAND_DEFINE(name, num, code, args)                                                                           \
                 if (string != 0 && strcmp(string, #name) == 0)                                                          \
@@ -27,16 +29,19 @@ const int MAX_LABEL_COUNT = 50;
                         string = strtok(NULL, " ");                                                                     \
                         if (string == 0)                                                                                \
                         {                                                                                               \
-                            binary_array[current_pos++] = '2';                                                          \
-                            break;                                                                                      \
+                            binary_array[current_pos++] = '2';\
+                            bytes++;                                                          \
+                            continue;                                                                                      \
                         }                                                                                               \
                         string[-1] = ' ';                                                                               \
                         if(string[0] == '[')                                                                            \
                         {                                                                                               \
                             binary_array[current_pos++] = '3';                                                          \
-                            bytes += 1;
-                            sscanf(string, "%[")
-                            printf("%s\n", string);                                                                     \
+                            bytes += 1;\
+                            char buffer [MAX_BUFFER_SIZE];\
+                            sscanf(string, "%*[[] %[^]]", buffer);                                                                        \
+                            string = buffer;                                                                     \
+                                                                                                                        \
                         }                                                                                               \
                         if (strcmp(string, "ax") == 0)                                                                  \
                         {                                                                                               \
@@ -83,7 +88,7 @@ const int MAX_LABEL_COUNT = 50;
                             continue;                                                                                   \
                         }                                                                                               \
                         int argument = atoi(string);                                                                    \
-                        printf("%d\n", argument);                                                                    \
+                        printf("1.%d\n", argument);                                                                       \
                         binary_array[current_pos++] = '1';                                                              \
                         int_to_char_array(binary_array, current_pos, argument);                                         \
                         current_pos += 4;                                                                               \

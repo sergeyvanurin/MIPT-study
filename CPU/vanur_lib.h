@@ -61,10 +61,10 @@ void *indexing(char *data, int strings)
 unsigned long vanur_hash(unsigned char *str)
 {
     unsigned long hash = 5381;
-    int c;
+    int character;
 
-    while (c = *++str)
-        hash = ((hash << 5) + hash) + c;
+    while (character = *++str)
+        hash = ((hash << 5) + hash) + character;
 
     return hash;
 }

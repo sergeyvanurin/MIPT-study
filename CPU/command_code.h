@@ -17,9 +17,10 @@
 
 
 #define CMD_ADD_CODE                                \
-        pop(&cpu_data_stack, arg[0]);               \
-        pop(&cpu_data_stack, arg[1]);               \
-        push(&cpu_data_stack, *arg[0] + *arg[1]);   \
+        int a = 0, b = 0;
+        pop(&cpu_data_stack, &a);               \
+        pop(&cpu_data_stack, &b);               \
+        push(&cpu_data_stack, a + b);   \
 
 
 
@@ -28,7 +29,7 @@
 
 
 #define CMD_JE_CODE                                     \
-        if (flag_registers[0] == 1)                    \
+        if (flag_registers[ZF] == 1)                    \
         {                                               \
             printf("%d\n", *arg[0]);                                               \
             offset = *arg[0];                           \
@@ -77,14 +78,14 @@
         printf("%d\n", *arg[0]);           \
 
 #define CMD_CMP_CODE \
-        printf("%d %d", *arg[0], *arg[1]);                                                \
-        if ((*arg[0] - *arg[1]) > 0)                                      \
-        {\
+        printf("%d %d ", *arg[0], *arg[1]);                         \
+        if ((*arg[0] - *arg[1]) > 0)                                \
+        {                                                               \
             printf("1");                                                        \
             flag_registers[SF] = 0;                                 \
             flag_registers[ZF] = 0;                                 \
         }                                                           \
-        if ((*arg[0]-*arg[1]) == 0)                                       \
+        if ((*arg[0] - *arg[1]) == 0)                                       \
         {\
             printf("2");                                   \
             flag_registers[SF] = 0;                                 \
@@ -116,6 +117,12 @@
 
 #define CMD_RTN_CODE                                                \
         pop(&cpu_call_stack, &offset);                              \
+
+#define CMD_CPY_CODE                                                \
+        pop(&cpu_data_stack, arg[0]);                               \
+        push(&cpu_data_stack, *arg[0]);                             \
+        push(&cpu_data_stack, *arg[0]);                             \
+
 
 
 
