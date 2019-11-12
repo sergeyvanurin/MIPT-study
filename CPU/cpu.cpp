@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
+#include <gra
 #include "command_enum.h"
 #include "vanur_lib.h"
 
@@ -13,7 +15,6 @@ const int  MEMMORY_SIZE     =          100000;
 
 #define COMMAND_DEFINE(name, num, code, args)                                               \
         case CMD_##name:                                                                    \
-        printf("COMMAND: %d\n OFFSET: %d\n", num, offset);                                  \
             for (int i = 0; i < args; i++)                                                  \
             {                                                                               \
                 if (*(current_command + 1) == '0')                                          \
@@ -21,24 +22,27 @@ const int  MEMMORY_SIZE     =          100000;
                     arg[i] = &registers[*(current_command + 2) - 100];                      \
                     offset += REGISTER_OFFSET;                                              \
                     current_command += REGISTER_OFFSET;                                     \
+                    arg_type[i] = '0';                                                       \
                 }                                                                           \
                 if (*(current_command + 1) == '1')                                          \
                 {                                                                           \
                     arg[i] = ((int*)(current_command + 2));                                 \
                     offset += INTEGER_OFFSET;                                               \
                     current_command += INTEGER_OFFSET;                                      \
-                    printf("%d:", *arg[i]);                                                 \
+                    arg_type[i] = '1';                                                       \
                 }                                                                           \
                 if (*(current_command + 1) == '2')                                          \
                 {                                                                           \
                     arg[i] = &buffer[i];                                                    \
                     offset +=  NO_ARG_OFFSET;                                               \
                     current_command += NO_ARG_OFFSET;                                       \
+                    arg_type[i] = '2';                                                     \
                 }                                                                           \
                 if (*(current_command + 1) == '3')                                          \
                 {                                                                           \
                     current_command++;                                                      \
                     offset++;                                                               \
+                    arg_type[i] = '3';                                                       \
                     if (*(current_command + 1) == '0')                                      \
                     {                                                                       \
                         arg[i] = &memmory[registers[*(current_command + 2) - 100]];         \
@@ -57,10 +61,9 @@ const int  MEMMORY_SIZE     =          100000;
             {                                                                               \
                 arg[0] = &buffer[0];                                                        \
             }                                                                               \
-            printf("ARGUMENT: %d\n", *arg[0]);                                              \
+            /* printf("ARGUMENT: %d\n", *arg[0]); */                                              \
             offset++;                                                                       \
             code                                                                            \
-            printf("CODE COMPLETED\n");                                                     \
         break;                                                                              \
 
 enum REGISTERS
@@ -73,11 +76,10 @@ enum REGISTERS
     DX = 103
 };
 
-void cpu()
+void cpu(char *path)
 {
     bool exit_flag = 1;
     int offset = 0;
-    char path[] = "binary.binary";
     void *commands = file_read(path);
     struct dynamic_stack cpu_data_stack;
     STACK_INIT(cpu_data_stack)
@@ -88,9 +90,11 @@ void cpu()
     int memmory[MEMMORY_SIZE];
     while (exit_flag)
     {
+        int a = 0, b = 0;
         char *current_command = (char*)commands + offset;
         int *arg[MAX_ARGS_COUNT] = {};
         int buffer[MAX_ARGS_COUNT] = {};        
+        int arg_type[MAX_ARGS_COUNT] = {};
         switch (*current_command)
         {
             #include "commands.h"
@@ -99,9 +103,10 @@ void cpu()
     free(commands);
 }
 
-int main()
+int main(int argc, char** argv)
 {
     printf("HELLO\n");
-    cpu();
+    printf("%s\n", argv[1]);
+    cpu(argv[1]);
     return 0;
 }

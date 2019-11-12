@@ -1,6 +1,25 @@
-PUSH 95
-PUSH 95
-ADD
+IN
+POP ax
+PUSH 2
+POP bx
+PUSH 0
+PUSH 1
+CMP ax bx
+JG fib
 OUT
-JMP 4
+EXIT
+:fib
+CPY
+POP cx
+ADD
+POP dx
+PUSH cx
+PUSH dx
+PUSH bx
+INC
+POP bx
+CMP bx ax
+JL fib
+:exit
+OUT
 EXIT
