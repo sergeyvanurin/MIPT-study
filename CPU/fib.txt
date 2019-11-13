@@ -1,0 +1,22 @@
+IN ax
+DEC ax
+PUSH 1
+POP cx
+PUSH 0
+PUSH 1
+CALL fib
+OUT
+EXIT
+:fib
+CMP ax cx
+JLE next
+INC cx
+CALL fib
+:next
+CPY
+POP bx
+ADD
+POP dx
+PUSH bx
+PUSH dx
+RTN

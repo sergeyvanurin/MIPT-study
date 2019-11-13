@@ -162,8 +162,21 @@
 #define CMD_PRINT_CODE                  \
         printf("%c", *arg[0]);          \
 
-#define CMD_DRAW_PICTURE                \
-        for (int i = 0; i < HEIGHT; i++)
+#define CMD_DRAW_CODE                               \
+        for (int i = 0; i < *arg[0]; i++)            \
+        {                                           \
+            for (int j = 0; j < *arg[1]; j++)        \
+            {\
+                switch (vram[i*(*arg[0]) + j])         \
+                {                                           \
+                    COLOUR(WHITE, "\033[40m \033[0m")   \
+                    COLOUR(BLACK, "\033[107m \033[0m")            \
+                }                                   \
+            }                                       \
+            printf("\n");                               \
+        }                                           \
+
+
 
 
 

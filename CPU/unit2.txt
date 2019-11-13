@@ -1,0 +1,18 @@
+PUSH 10
+PUSH 20
+PUSH 30
+PUSH 3
+CALL PRINT_N_NUM
+EXIT
+:PRINT_N_NUM
+POP ax
+PUSH 0
+POP bx
+:begin
+OUT
+PUSH bx
+INC
+POP bx
+CMP ax bx
+JG begin
+RTN

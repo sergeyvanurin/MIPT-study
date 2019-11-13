@@ -1,0 +1,86 @@
+IN
+IN
+IN
+CPY
+POP cx
+POP [3]
+CPY
+POP bx
+POP [2]
+CPY
+POP ax
+POP [1]
+CMP 0 ax
+JE linear
+PUSH bx
+CPY
+MUL
+POP bx
+PUSH ax
+PUSH cx
+MUL
+PUSH 4
+MUL
+PUSH bx
+SUB
+CPY
+POP dx
+CMP 0 dx
+JG no_roots
+SQRT
+POP [4]
+PUSH [2]
+PUSH -1
+MUL
+PUSH [4]
+ADD
+POP [5]
+PUSH 2
+PUSH [1]
+MUL
+PUSH [5]
+DIV
+CPY
+POP [7]
+OUT
+PUSH [4]
+PUSH [2]
+PUSH -1
+MUL
+SUB
+POP [6]
+PUSH [1]
+PUSH 2
+MUL
+PUSH [6]
+DIV
+CPY
+POP [8]
+CMP [7] [8]
+JE exit 
+OUT
+:exit
+EXIT
+:linear
+CMP [2] 0
+JE inf
+CMP [3] 0
+JE null
+PUSH [2]
+PUSH -1
+PUSH [3]
+MUL
+DIV
+OUT
+EXIT
+:null
+PUSH 0
+OUT
+EXIT
+:inf
+CMP [3] 0
+JNE no_roots
+PRINT 105
+EXIT
+:no_roots
+EXIT

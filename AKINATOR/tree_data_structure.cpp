@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 
+
 typedef char tree_type;
 
 const int LEFT  = 0;
@@ -156,12 +157,42 @@ void akinator(struct node *tree)
         scanf("%d", &i);
     }
 }
+bool search(char *key_word,struct node *tree)
+{
+
+    if (!tree) return 0;
+    if (tree->data != NULL && strcmp(key_word, tree->data) != 0)
+    {
+        if (search(key_word, tree->left))
+        { 
+            printf("is %s ,", tree->data);
+            return 1;
+        }
+        if (search(key_word, tree->right))
+        { 
+            printf("not %s ,", tree->data);
+            return 1;
+        }
+        return 0;
+    }
+    if (strcmp(key_word, tree->data) == 0)
+    {
+        if (tree->question)
+        { 
+            printf("It's not an object :(\n");
+            return 0;
+        }
+        printf("%s ", tree->data);
+        return 1;
+    }
+    printf("No such object :(\n");
+    return 0;
+}
 
 int main()
 {
     char buffer[500];
     struct node tree;
-    char *data = (char*)file_read("akinator.txt");
     node_init(&tree);
     FILE *in = fopen("akinator.txt", "r");
     fscanf(in, "%s", buffer);
@@ -169,4 +200,8 @@ int main()
     akinator(&tree);
     FILE *out = fopen("akinator.txt", "w");
     save_tree(&tree, out);
+    fclose(in);
+    fclose(out);
+    search("BOLSHOY", &tree);
+    system("python3 GRAPH.py");
 }

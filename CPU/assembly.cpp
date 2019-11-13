@@ -42,6 +42,14 @@ const int MAX_BUFFER_SIZE = 50;
                             sscanf(string, "%*[[] %[^]]", buffer);                                                      \
                             string = buffer;                                                                            \
                         }                                                                                               \
+                        if(string[0] == '{')                                                                            \
+                        {                                                                                               \
+                            binary_array[current_pos++] = '4';                                                          \
+                            bytes += 1;                                                                                 \
+                            char buffer [MAX_BUFFER_SIZE];                                                              \
+                            sscanf(string, "%*[{] %[^}]", buffer);                                                      \
+                            string = buffer;                                                                            \
+                        }                                                                                               \
                         if (strcmp(string, "ax") == 0)                                                                  \
                         {                                                                                               \
                             binary_array[current_pos++] = '0';                                                          \

@@ -1,0 +1,16 @@
+IN
+POP ax
+IN
+POP bx
+IN
+POP cx
+PUSH ax
+PUSH bx
+PUSH cx
+CALL Diskr
+CALL roots
+:exit
+EXIT
+:Disk
+
+:roots

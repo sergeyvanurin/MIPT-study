@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-#include <gra
 #include "command_enum.h"
 #include "vanur_lib.h"
 
@@ -12,6 +11,7 @@ const int  REGISTER_OFFSET  =               2;
 const int  INTEGER_OFFSET   = sizeof(int) + 1;
 const int  NO_ARG_OFFSET    =               1;
 const int  MEMMORY_SIZE     =          100000;
+const int  VRAM_SIZE        =          100000;
 
 #define COMMAND_DEFINE(name, num, code, args)                                               \
         case CMD_##name:                                                                    \
@@ -38,20 +38,24 @@ const int  MEMMORY_SIZE     =          100000;
                     current_command += NO_ARG_OFFSET;                                       \
                     arg_type[i] = '2';                                                     \
                 }                                                                           \
-                if (*(current_command + 1) == '3')                                          \
+                if (*(current_command + 1) == '3' || *(current_command + 1) == '4')         \
                 {                                                                           \
+                    int flag = *(current_command + 1);                                      \
                     current_command++;                                                      \
                     offset++;                                                               \
-                    arg_type[i] = '3';                                                       \
+                    if (flag == '3') arg_type[i] = '3';                                     \
+                    if (flag == '4') arg_type[i] = '4';                                     \
                     if (*(current_command + 1) == '0')                                      \
                     {                                                                       \
-                        arg[i] = &memmory[registers[*(current_command + 2) - 100]];         \
+                        if (flag == '3') arg[i] = &memmory[registers[*(current_command + 2) - 100]];        \
+                        if (flag == '4') arg[i] = &vram[registers[*(current_command + 2) - 100]];        \
                         offset += REGISTER_OFFSET;                                          \
                         current_command += REGISTER_OFFSET;                                 \
                     }                                                                       \
                     if (*(current_command + 1) == '1')                                      \
                     {                                                                       \
-                        arg[i] = &memmory[*((int*)(current_command + 2))];                  \
+                        if (flag == '3') arg[i] = &memmory[*((int*)(current_command + 2))]; \
+                        if (flag == '4') arg[i] = &vram[*((int*)(current_command + 2))];    \
                         offset += INTEGER_OFFSET;                                           \
                         current_command += INTEGER_OFFSET;                                  \
                     }                                                                       \
@@ -61,7 +65,7 @@ const int  MEMMORY_SIZE     =          100000;
             {                                                                               \
                 arg[0] = &buffer[0];                                                        \
             }                                                                               \
-            /* printf("ARGUMENT: %d\n", *arg[0]); */                                              \
+            /* printf("ARGUMENT: %d\n", *arg[0]); */                                        \
             offset++;                                                                       \
             code                                                                            \
         break;                                                                              \
@@ -76,6 +80,18 @@ enum REGISTERS
     DX = 103
 };
 
+enum COLOURS
+{
+    WHITE,
+    BLACK
+};
+
+#define COLOUR(name, code)          \
+        case name:                  \
+            printf("%s", code);     \
+        break;                      \
+
+
 void cpu(char *path)
 {
     bool exit_flag = 1;
@@ -88,6 +104,7 @@ void cpu(char *path)
     int registers[4] = {0, 0, 0, 0};
     bool flag_registers[2] = {0, 0};
     int memmory[MEMMORY_SIZE];
+    int vram[VRAM_SIZE];
     while (exit_flag)
     {
         int a = 0, b = 0;

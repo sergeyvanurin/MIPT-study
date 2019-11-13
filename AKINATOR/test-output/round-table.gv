@@ -1,0 +1,32 @@
+// AKINATOR
+digraph {
+	ALIVE
+	BOLSHOY
+	ALIVE -> BOLSHOY [label=yes]
+	COW
+	BOLSHOY -> COW [label=yes]
+	CUTE
+	BOLSHOY -> CUTE [label=no]
+	CHELOVEK
+	CUTE -> CHELOVEK [label=yes]
+	SEREGA_GORBUNOV
+	CHELOVEK -> SEREGA_GORBUNOV [label=yes]
+	CAT
+	CHELOVEK -> CAT [label=no]
+	SHEEP
+	CUTE -> SHEEP [label=no]
+	ELECTRIC
+	ALIVE -> ELECTRIC [label=no]
+	DUET
+	ELECTRIC -> DUET [label=yes]
+	AIR_CONDITIONER
+	DUET -> AIR_CONDITIONER [label=yes]
+	TV
+	DUET -> TV [label=no]
+	SMALL
+	ELECTRIC -> SMALL [label=no]
+	BOOK
+	SMALL -> BOOK [label=yes]
+	CHAIR
+	SMALL -> CHAIR [label=no]
+}
