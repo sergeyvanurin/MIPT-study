@@ -5,14 +5,15 @@
 
 
 typedef char tree_type;
-
 const int LEFT  = 0;
 const int RIGHT = 1;
 const int MAX_DATA_SIZE = 200;
+const int TTS_BUFFER_SIZE = 100;
+const int MAX_BUFFER_SIZE = 100;
+
 
 struct node 
 {
-    int question;
     char data[MAX_DATA_SIZE];
     struct node *left;
     struct node *right;
@@ -58,8 +59,11 @@ bool add_node(struct node *node, int direction)
 
 void ask_questions(struct node *tree)
 {
+    char tts_buffer[TTS_BUFFER_SIZE] = "say Is it ";
     int answer = 0;
     printf("Is it %s? ", tree->data);
+    strcat(tts_buffer, tree->data);
+    system(tts_buffer);
     printf("1 - yes , 0 - no:\n");
     scanf("%d", &answer);
     if (answer == 1)
@@ -70,12 +74,17 @@ void ask_questions(struct node *tree)
         }
         else
         {
-            if (tree->question == 0) printf("I knew it!\n");
+            if (tree->question == 0)
+            {
+                 printf("I knew it!\n");
+                 system("say Iknew it!");
+            }
             else
             {
                 add_node(tree, LEFT);
                 printf("I don't know what you mean :(\nWhat or who did you mean?: ");
-                scanf("%s", tree->left->data);
+                system("say I don't know what you mean, What or who did you mean?: ");
+                scanf(" %[^\n]", tree->left->data);
             }
             
         }
@@ -93,17 +102,24 @@ void ask_questions(struct node *tree)
                 add_node(tree, LEFT);
                 add_node(tree, RIGHT);
                 printf("I was close! What did you pick?:");
-                scanf("%s", tree->left->data);
+                system("say I was close! What did you pick?");
+                scanf(" %[^\n]", tree->left->data);
                 strcpy(tree->right->data, tree->data);
                 printf("what characterstic differ %s from %s: ",tree->left->data, tree->data);
-                scanf("%s", tree->data);
+                sprintf(tts_buffer, "say what characterstic differ ");
+                strcat(tts_buffer, tree->left->data);
+                strcat(tts_buffer, " from ");
+                strcat(tts_buffer, tree->data);
+                system(tts_buffer);
+                scanf(" %[^\n]", tree->data);
                 tree->question = 1;
             }
             else
             {
                 add_node(tree, RIGHT);
                 printf("I don't know what you mean :(\n What or who did you mean?:");
-                scanf("%s", tree->right->data);
+                system("say I don't know what you mean, What or who did you mean?: ");
+                scanf(" %[^\n]", tree->right->data);
             }
         }
     }
@@ -112,22 +128,26 @@ void ask_questions(struct node *tree)
 
 void save_tree(struct node *tree, FILE *out)
 {
+
     if (!tree)
     {
-        fprintf(out, "# ");
+        fprintf(out, "{#");
     }
     else
     {
-        fprintf(out, "%s %d ", tree->data, tree->question);
+        fprintf(out, "{\"%s\"", tree->data, tree->question);
         save_tree(tree->left, out);
+        fprintf(out, "}");
         save_tree(tree->right, out);
+        fprintf(out, "}");
     }
 }
 
-void load_tree(struct node *tree, FILE *in, char *buffer)
+void load_tree(struct node *tree, FILE *in)
 {
-    strcpy(tree->data, buffer);
-    fscanf(in, "%d", &tree->question);
+    char buffer[MAX_BUFFER_SIZE];
+    fscanf(in, " %[^\0]", buffer);
+    strtok(buffer)
     fscanf(in, "%s", buffer);
     if (strcmp(buffer, "#") != 0)
     {
@@ -159,18 +179,17 @@ void akinator(struct node *tree)
 }
 bool search(char *key_word,struct node *tree)
 {
-
     if (!tree) return 0;
     if (tree->data != NULL && strcmp(key_word, tree->data) != 0)
     {
         if (search(key_word, tree->left))
         { 
-            printf("is %s ,", tree->data);
+            printf("is %s \n", tree->data);
             return 1;
         }
         if (search(key_word, tree->right))
         { 
-            printf("not %s ,", tree->data);
+            printf("not %s \n", tree->data);
             return 1;
         }
         return 0;
@@ -179,29 +198,28 @@ bool search(char *key_word,struct node *tree)
     {
         if (tree->question)
         { 
-            printf("It's not an object :(\n");
             return 0;
         }
         printf("%s ", tree->data);
         return 1;
     }
-    printf("No such object :(\n");
     return 0;
 }
 
 int main()
 {
-    char buffer[500];
     struct node tree;
     node_init(&tree);
     FILE *in = fopen("akinator.txt", "r");
-    fscanf(in, "%s", buffer);
-    load_tree(&tree, in, buffer);
+    load_tree(&tree, in);
     akinator(&tree);
+    fclose(in);
     FILE *out = fopen("akinator.txt", "w");
     save_tree(&tree, out);
-    fclose(in);
     fclose(out);
-    search("BOLSHOY", &tree);
+    if (!search("TV", &tree))
+    {
+        printf("No such object:(\n");
+    }
     system("python3 GRAPH.py");
 }

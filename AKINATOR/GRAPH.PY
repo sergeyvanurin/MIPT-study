@@ -1,7 +1,6 @@
 import graphviz as gp
 
 dot = gp.Digraph(comment='AKINATOR')
-
 file = open("akinator.txt", "r")
 data = file.read()
 data = data.split()
