@@ -192,10 +192,13 @@ char* get_N(char *string, node_struct *tree)
 char* get_G(char* string, node_struct *tree)
 {
     printf("G");
-    if ((*string > '0' && *string < '9') || *string == 'x')
+    if ((*string > '0' && *string < '9') || *string == 'x' || *string == '-')
     {
+        int sign = 0;
         int scanned = 0;
-        sscanf(string, "%[0-9x]%n", tree->data, &scanned);
+        sscanf(string, "%[-]%n", tree->data, &sign);
+        string += sign;
+        sscanf(string, "%[0-9x]%n", tree->data + sign, &scanned);
         printf("%s %d ", tree->data, scanned);
         string += scanned;
         return string;
