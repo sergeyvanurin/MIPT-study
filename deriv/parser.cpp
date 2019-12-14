@@ -9,7 +9,8 @@ const int RIGHT           = 1;
 
 struct node 
 {
-    char data[MAX_DATA_SIZE] = {};
+    char data[MAX_DATA_SIZE] = {}
+    ;
     struct node *parent;
     struct node *left;
     struct node *right;
@@ -45,6 +46,7 @@ void save_tree(node_struct *tree, FILE *out)
     }
     else
     {
+        printf("%s %p", tree->data, tree);
         fprintf(out, "%s ", tree->data);
         save_tree(tree->left, out);
         save_tree(tree->right, out);
@@ -154,11 +156,16 @@ char* get_P(char *string, node_struct *tree)
     if (*string == '(')
     {
         string++;
-        add_node(tree, LEFT);
-        
-        string = get_E(string, tree->left); 
+        node_struct *new_node = (node_struct*)calloc(1, sizeof(node_struct));
+        node_init(new_node);
+        add_node(new_node, LEFT);
+        string = get_E(string, new_node->left);
+        sprintf(tree->data, "%s", new_node->left->data);
+        tree->left = new_node->left->left;
+        tree->right = new_node->left->right;
         assert(*string == ')');
         string++;
+        free(new_node);
         return string;
     }
     string = get_N(string, tree);
@@ -168,13 +175,14 @@ char* get_P(char *string, node_struct *tree)
 char* get_N(char *string, node_struct *tree)
 {
     printf("N");
-    if (*string > 'a' && *string < 'z')
+    if (*string > 'a' && *string < 'z' && *string != 'x')
     {
         int scanned = 0;
         sscanf(string, "%[cosintgрh]%n", tree->data, &scanned);
+        printf("%s %d ", tree->data, scanned);
         string += scanned;
         add_node(tree, LEFT);
-        string = get_E(string, tree->left);
+        string = get_P(string, tree->left);
         return string;
     }
     string = get_G(string, tree);
@@ -199,7 +207,8 @@ void parse(const char* path, node_struct *tree)
 {
     node_init(tree);
     char *string = get_string(path);
-    get_E(string, tree);
+    printf("%s", string);
+    assert(*get_E(string, tree) == 0);
 }
 
 
