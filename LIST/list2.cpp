@@ -9,7 +9,6 @@ const int POISON            = 666;
 const int RESIZE_CONSTANT   = 10;
 int       ERROR_CODE        = 0;
 
-
 struct list
 {
     list_t *data;
@@ -22,12 +21,6 @@ struct list
     int max_size;
     bool is_sorted;
 };
-
-#ifndef VERBOSE
-    #define VERBOSE 0
-#else
-    #define VERBOSE 1
-#endif
 
 enum ERROR_CODES
 {
@@ -48,7 +41,7 @@ bool build_graph(struct list *list, const char *path);
 bool resize(struct list *list, int resize_const);
 bool deinit(struct list *list);
 bool list_validation(struct list *list);
-bool swap(struct list *list, int a, int b);
+void swap(struct list *list, int a, int b);
 bool test1(struct list *list);
 bool test2(struct list *list);
 bool test3(struct list *list);
@@ -57,20 +50,28 @@ bool test5(struct list *list);
 
 int main()
 {
-    struct list list;
+    struct list list = {};
     list_init(&list);
+
     assert(test1(&list));
+
     deinit(&list);
     list_init(&list);
+
     assert(test2(&list));
+
     deinit(&list);
     list_init(&list);
+
     assert(test3(&list));
+
     deinit(&list);
-    struct list list2;
-    list_init(&list2);
-    assert(test4(&list2));
-    deinit(&list2);
+    list_init(&list);
+
+    assert(test4(&list));
+    deinit(&list);
+
+    return 0;
 }
 
 bool list_init(struct list* list)
@@ -110,6 +111,7 @@ bool add(struct list *list, list_t element)
     list->data[list->next_free] = element;
     list->next_free = -1 * list->next[list->next_free];
     list->size++;
+    
     if (!list_validation(list)) return false;
     return true;
 }
@@ -119,7 +121,7 @@ bool add_after(struct list *list, list_t element, int index)
     assert(list);
     if (!list_validation(list)) return false;
 
-    if (list->next[index] < 0 || list->prev[index] < 0) return false;
+    if (list->next[index] < 0 || list->prev[index] < 0 || index == POISON || index >= list->max_size) return false;
 
     if (list->size == list->max_size) resize(list, RESIZE_CONSTANT);
 
@@ -135,7 +137,7 @@ bool add_after(struct list *list, list_t element, int index)
     list->next[index] = new_index;
     list->next[new_index] = old_index;
     list->is_sorted = false;
-
+    
     if (!list_validation(list)) return false;
     return true;
 }
@@ -171,7 +173,7 @@ bool remove(struct list *list, int index)
     if (index != list->tail ) list->is_sorted = false;
 
     else list->tail = list->prev[list->tail];
-
+    
     if (!list_validation(list)) return false;
     return true;
 }
@@ -232,6 +234,8 @@ bool add_to_end(struct list *list, list_t element)
     assert(list);
     if (!list_validation(list)) return false;
 
+    if (list->size == list->max_size) resize(list, RESIZE_CONSTANT);
+
     int new_element = list->next_free;
 
     if (!add(list, element)) return false;
@@ -243,7 +247,7 @@ bool add_to_end(struct list *list, list_t element)
     if (list->head != new_element) list->prev[new_element] = list->tail;
 
     list->tail = new_element;
-
+    
     if (!list_validation(list)) return false;
     return true;
 }
@@ -314,28 +318,32 @@ bool resize(struct list *list, int resize_const)
     list->data = (list_t*)realloc(list->data, sizeof(list_t) * (list->max_size + resize_const));
     list->next = (int*)realloc(list->next, sizeof(int) * (list->max_size + resize_const));
     list->prev = (int*)realloc(list->prev, sizeof(int) * (list->max_size + resize_const));
+
     list->next_free = list->size;
+
     for (int i = list->max_size; i < list->max_size + resize_const; i++)
     {
         list->data[i] = 0;
         list->next[i] = -1 * (i + 1);
         list->prev[i] = -1 * (i - 1);
     }
+
     list->next[list->max_size + resize_const - 1] = POISON;
     list->max_size = list->max_size + resize_const;
-
+    
     if (!list_validation(list)) return false;
     return true;
 }
 
 bool deinit(struct list *list)
 {
-    assert(list);
-    if (!list_validation(list)) return false;
-    
-    free(list->data);
-    free(list->next);
-    free(list->prev);
+    assert(list); 
+    if (list->data != NULL)
+    {
+        free(list->data);
+        free(list->next);
+        free(list->prev);
+    }
     list->data = NULL;
     list->next = NULL;
     list->prev = NULL;
@@ -344,12 +352,7 @@ bool deinit(struct list *list)
 
 bool list_validation(struct list *list)
 {
-    assert(list);
-
-    int positions[list->max_size];
-
-    for (int i = 0; i < list->max_size; i++) positions[i] = 0;
-
+    int *positions = new int[list->max_size]();
     int current_pos = list->head;
     int counter = 0;
 
@@ -367,11 +370,8 @@ bool list_validation(struct list *list)
 
     if (counter != list->size)
     { 
-        ERROR_CODE = LIST_IS_CORRUPTED;
-
-        dump(list);
-
         return false;
+        ERROR_CODE = 1;
     }
 
     counter = 0;
@@ -383,31 +383,29 @@ bool list_validation(struct list *list)
 
     if (counter != (list->max_size - list->size))
     {
-        ERROR_CODE = LIST_IS_CORRUPTED;
-
-        dump(list);
-
         return false;
+        ERROR_CODE = 1;
     }
+
+    delete[](positions);
 
     return true;
 }
 
-bool  get_element(struct list *list,int index, list_t *element)
+bool  get_element(struct list *list, int index, list_t *element)
 {
     assert(list);
     if (!list_validation(list)) return false;
 
-    sort(list);
+    if(!list->is_sorted) sort(list);
     *element = list->data[index];
     return true;
 }
 
-bool swap(struct list *list, int a, int b)
+void swap(struct list *list, int a, int b)
 {
     assert(list);
-    if (!list_validation(list)) return false;
-
+    
     list_t buffer = 0;
     int buffer2 = 0;
     buffer = list->data[a];
@@ -416,7 +414,6 @@ bool swap(struct list *list, int a, int b)
     buffer2 = list->prev[a];
     list->prev[a] = list->prev[b];
     list->prev[b] = buffer2;
-    return true;
 }
 
 bool test1(struct list *list)
@@ -424,8 +421,9 @@ bool test1(struct list *list)
     for (int i = 0; i < 6; i++)
     {
         if (!add_to_end(list , i)) return false;
+        dump(list);
     }
-    dump(list);
+
     if(!add_after(list, 10, 2)) return false;
 
     if(!add_before(list, 20, 5)) return false;
@@ -440,10 +438,9 @@ bool test2(struct list *list)
     for (int i = 0; i < 15; i++)
     {
         if (!add_to_end(list , i)) return false;
-        dump(list);
     }
-    dump(list);
     build_graph(list, "test2.dot");
+    dump(list);
     return true;
 }
 
@@ -453,7 +450,6 @@ bool test3(struct list *list)
     {
         if (!add_to_end(list , i)) return false;
     }
-
     add_after(list, 10, 1);
     add_after(list, 20, 3);
     add_after(list, 30, 5);
@@ -461,10 +457,11 @@ bool test3(struct list *list)
 
     add_before(list, 40, 4);
     add_before(list, 50, 4);
-    add_before(list, 60, 6);
+    add_before(list, 60, list->tail);
     sort(list);
 
     build_graph(list, "test3.dot");
+    dump(list);
     return true;
 }
 
@@ -479,10 +476,10 @@ bool test4(struct list *list)
     remove(list, 4);
     add_to_end(list, 10);
     add_to_end(list, 20);
-
     remove(list, list->tail);
     build_graph(list, "test4.dot");
-    list->next[3] = -5;
+    list->next[2] = -5;
     assert(!list_validation(list));
+    dump(list);
     return true;
 }
