@@ -1,0 +1,1 @@
+; $main # op = a # # 5 # # op if = a # # 5 # # if-else op print a # # # # # op while > a # # 0 # # op print a # # # op = a # # - a # # 1 # # # # # 

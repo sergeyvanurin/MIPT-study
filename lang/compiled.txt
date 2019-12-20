@@ -1,0 +1,26 @@
+CALL main
+EXIT
+main:
+PUSH 5.000000
+POP [97]
+PUSH [97]
+PUSH 5.000000
+JE if_metka0
+JMP exit_metka0
+if_metka0:
+PUSH [97]
+OUT
+exit_metka0:
+while_metka1:
+PUSH [97]
+PUSH 0.000000
+JBE exit_metka1
+PUSH [97]
+OUT
+PUSH [97]
+PUSH 1.000000
+SUB
+POP [97]
+JMP while_metka1:
+exit_metka1:
+RETURN
